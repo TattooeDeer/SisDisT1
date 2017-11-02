@@ -19,7 +19,7 @@ public class Sender {
      
         // Open a new DatagramSocket, which will be used to send the data.
         try (DatagramSocket serverSocket = new DatagramSocket()) {
-            for (int i = 0; i < 5; i++) {
+            /*for (int i = 0; i < 5; i++) {
                 String msg = "Sent message no " + i;
 
                 // Create a packet that will contain the data
@@ -30,11 +30,20 @@ public class Sender {
      
                 System.out.println("Server sent packet with msg (Unicast 8887): " + msg);
                 
-            }
+            }*/
+            String msg = "trost";
+
+                // Create a packet that will contain the data
+                // (in the form of bytes) and send it.
+                DatagramPacket msgPacket = new DatagramPacket(msg.getBytes(),
+                        msg.getBytes().length, addr, PORT);
+                serverSocket.send(msgPacket);
+     
+                System.out.println("Server sent packet with msg (Unicast 8887): " + msg);
         } catch (IOException ex) {
             ex.printStackTrace();
         }
-
+/*
         ///////////////////// MULTICAST //////////////////////
         InetAddress addr2 = InetAddress.getByName(M_ADDR);
         // Open a new DatagramSocket, which will be used to send the data.
@@ -53,7 +62,7 @@ public class Sender {
         } catch (IOException ex) {
             ex.printStackTrace();
         }
-        
+  */      
 
 }
 }

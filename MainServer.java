@@ -14,36 +14,15 @@ public class MainServer{
     // output thread count
     private final static int OUTPUT_THREADS = 10;
 
-    private final static String MULTICAST_ADDR = "224.0.0.3";
-    private final static String CLIENT_ADDR = "192.168.0.17";
-    private final static int MULTICAST_PORT = 8888;
-    private final static int CLIENT_PORT = 8887;
-
-    protected static int index_distritos = 1;
-    protected static Map<String,String> map_distritos = new HashMap<String,String>();
-    protected static Map<String,Integer> switch_distritos = new HashMap<String,Integer>();
-    protected static List<Titan> lista_titanes = new ArrayList<Titan>(); // Lleva un registro de los titantes creados
-    // members to support the two server sockets
-    protected DatagramSocket socket_cliente;
-    //private Runnable accepter_cliente;
-    protected MulticastSocket socket_distritos;
-    //private Runnable accepter_distritos;
-
-    // members to hold the two groups of clients
-    //private Set<Socket> group_clientes;
-    //private Set<Socket> group_distritos;
-
-    // members to support the output thread pool
-    //private ExecutorService outputService;
-
     
     public static void main(String[] args) throws UnknownHostException {
         // Get the address that we are going to connect to.
-        map_distritos.put("trost","192.168.0.17;8007;224.0.0.4;8888");
-        switch_distritos.put("trost",index_distritos);
-        index_distritos+=1;
-        SocketDistritos sd = new SocketDistritos(MULTICAST_ADDR, 8888);
-        SocketCliente sc = new SocketCliente(8887);
+        SuperSocket.IniciarServidor();
+        //map_distritos.put("trost","192.168.0.17;8007;224.0.0.4;8888");
+        //switch_distritos.put("trost",index_distritos);
+        //index_distritos+=1;
+        SocketDistritos sd = new SocketDistritos();
+        SocketCliente sc = new SocketCliente();
 
         Thread t_cliente = new Thread(sc);
         Thread t_distrito = new Thread(sd);
@@ -53,6 +32,78 @@ public class MainServer{
         t_distrito.start();
 
     }
+
+}
+
+
+///////////////////////// CLASES DE SOCKETS /////////////////////////////////
+
+abstract class SuperSocket implements Runnable{
+    protected  static String MULTICAST_ADDR;
+    protected  static String CLIENT_ADDR;
+    protected  static int MULTICAST_PORT;
+    protected  static int CLIENT_PORT;
+
+    protected static int index_distritos = 1;
+    protected static Map<String,String> map_distritos = new HashMap<String,String>();
+    protected static Map<String,Integer> switch_distritos = new HashMap<String,Integer>();
+    protected static List<Titan> lista_titanes = new ArrayList<Titan>(); // Lleva un registro de los titantes creados
+    // members to support the two server sockets
+    protected static DatagramSocket socket_cliente;
+    //private Runnable accepter_cliente;
+    protected static MulticastSocket socket_distritos;
+    //private Runnable accepter_distritos;
+
+    // members to hold the two groups of clients
+    //private Set<Socket> group_clientes;
+    //private Set<Socket> group_distritos;
+
+    // members to support the output thread pool
+    //private ExecutorService outputService;
+
+
+    public SuperSocket(){
+       // IniciarServidor();
+    }
+    public static void IniciarServidor(){
+        System.setProperty("java.net.preferIPv4Stack", "true");
+        String input;
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        try{
+            
+            System.out.println("IP Multicast: ");
+            input = br.readLine();
+            MULTICAST_ADDR = input;
+
+
+            System.out.println("Puerto Multicast: ");
+            input = br.readLine();
+            MULTICAST_PORT = Integer.parseInt(input);
+
+            System.out.println("IP Peticiones: ");
+            input = br.readLine();
+            CLIENT_ADDR = input;
+
+            System.out.println("Puerto Peticiones: ");
+            input = br.readLine();
+            CLIENT_PORT = Integer.parseInt(input);
+
+            
+
+            //Ligamos el socket personal a un socket local especifico
+            //InetAddress client_ip = InetAddress.getByName(CLIENT_ADDR);
+            socket_cliente = new DatagramSocket(CLIENT_PORT);
+
+            //Enviamos un mensaje avisando de nuestra creacion
+            socket_distritos = new MulticastSocket(MULTICAST_PORT);
+            InetAddress group = InetAddress.getByName(MULTICAST_ADDR);
+            socket_distritos.joinGroup(group);
+            
+        } catch(IOException e){
+            e.printStackTrace();
+        }
+    }
+
 
     //Retorna un packete datagrama listo para ser enviado con la informacion del distrito
     protected static String InfoDistrito(DatagramPacket packet, String selected_distrito) throws UnknownHostException{
@@ -96,18 +147,13 @@ public class MainServer{
         return(false);
     }
 
+
 }
 
-///////////////////////// CLASES DE SOCKETS /////////////////////////////////
 
-class SocketDistritos extends MainServer implements Runnable{
-    private String m_addr;
-    private int m_port;
 
-    public SocketDistritos(String m_addr, int m_port){
-        this.m_addr = m_addr;
-        this.m_port = m_port;
-    }
+
+class SocketDistritos extends SuperSocket implements Runnable{
 
     public void run(){
         System.setProperty("java.net.preferIPv4Stack", "true");
@@ -120,24 +166,24 @@ class SocketDistritos extends MainServer implements Runnable{
         // to join it as well.
         
         try{
-            MulticastSocket mSocket = new MulticastSocket(m_port);
-            InetAddress group = InetAddress.getByName(m_addr);
+            //MulticastSocket mSocket = new MulticastSocket(m_port);
+            //InetAddress group = InetAddress.getByName(m_addr);
             //Join the Multicast group.
-            mSocket.joinGroup(group);
+            //socket_distritos.joinGroup(group);
             
             //checkeamos a los distritos que esten disponibles
             String msg = "CheckDistritos";
             DatagramPacket msgPacket = new DatagramPacket(msg.getBytes(),
-                    msg.getBytes().length, group, m_port);
-             mSocket.send(msgPacket);
+                    msg.getBytes().length, InetAddress.getByName(MULTICAST_ADDR), MULTICAST_PORT);
+             socket_distritos.send(msgPacket);
 
             //En los distritos hacer un pequeño sleep para poder darle tiempo a este thread de comenzar a leer
             while (true) {
-                System.out.println("Escuchando en Multicast en la direccion IP:PORT: " + m_addr+":"+m_port);
+                System.out.println("Escuchando en Multicast en la direccion IP:PORT: " + MULTICAST_ADDR+":"+MULTICAST_PORT);
                 // Receive the information and print it.
                 DatagramPacket packet = new DatagramPacket(buf, buf.length);
-                mSocket.setSoTimeout(10500);
-                mSocket.receive(packet);
+                socket_distritos.setSoTimeout(10500);
+                socket_distritos.receive(packet);
 
                 //Por diferencias de tamaño de buffer hay que reasignar la info recibida
                 byte[] data = new byte[packet.getLength()];
@@ -153,27 +199,31 @@ class SocketDistritos extends MainServer implements Runnable{
                 //Se esperan respuestas del tipo: Comando/Nombre/IPMulti;PortMulti;IPPersonal;PortPersonal    
                 // Cuando se anuncia la creacion de un nuevo distrito, hay que agregarlo
                 if(sockets_distritos[0].equals("NewDistrito")){
-                    if(!map_distritos.containsKey(sockets_distritos[1])){ //Si no se encuentra el distrito ya en el diccionario...
+                    if(map_distritos.containsKey(sockets_distritos[1]) == false){ //Si no se encuentra el distrito ya en el diccionario...
                     map_distritos.put(sockets_distritos[1],sockets_distritos[2]);
                     switch_distritos.put(sockets_distritos[1],index_distritos);
                     index_distritos+=1;
                     System.out.println("Se creo un nuevo distrito: "+sockets_distritos[1]);
-                    }    }
+                    }
+                }
                 
+
                 //Se crea un nuevo titan en un distrito
-                else if(sockets_distritos[0].equals("NewTitan")){
+                
+                //if(sockets_distritos[0].equals("NewTitan")){
                     /*if(!map_distritos.containsKey(sockets_distritos[0])){ //Si no se encuentra el distrito ya en el diccionario...
                         System.out.println("Se creo un titan en un distrito desconocido!");
                         continue;
                     }*/    
                     //crear un nuevo titan con los parametros dados, por defecto: NewTitan/nombre;tipo;distrito
                     // si se creo, entonces devolver 
-                    String sep2 = "[;]"; //caracter separador
-                    String[] params_titan = sockets_distritos[1].split(sep2);// El resultado es: [Nombre,tipo,distrito]
-                    Titan nuevo_titan = new Titan(params_titan[0],params_titan[1],params_titan[2]);
-                    lista_titanes.add(nuevo_titan);
+                  //  String sep2 = "[;]"; //caracter separador
+                  //  String[] params_titan = sockets_distritos[1].split(sep2);// El resultado es: [Nombre,tipo,distrito]
+                   // Titan nuevo_titan = new Titan(params_titan[0],params_titan[1],params_titan[2]);
+                   // lista_titanes.add(nuevo_titan);
 
-                    System.out.println("NUEVO TITAN: \n**********\nNombre: "+lista_titanes.get(0).GetNombre()+"\nTipo: "+lista_titanes.get(0).GetTipo()+"\nEn el distrito: "+lista_titanes.get(0).GetDistrito()+"\n**********");}
+                   // System.out.println("NUEVO TITAN: \n**********\nNombre: "+lista_titanes.get(0).GetNombre()+"\nTipo: "+lista_titanes.get(0).GetTipo()+"\nEn el distrito: "+lista_titanes.get(0).GetDistrito()+"\n**********");
+                //}
 
                 //////// DEMAS FUNCIONES DE SERVIDOR A PEDIDO DE DISTRITOS
                 
@@ -193,55 +243,95 @@ class SocketDistritos extends MainServer implements Runnable{
 
 
 
-class SocketCliente extends MainServer implements Runnable{
-    private int c_port;
-
-
-    public SocketCliente(int c_port){
-        this.c_port = c_port;
-        //this.map_distritos = map_distritos;
-
-    }
+class SocketCliente extends SuperSocket implements Runnable{
+    
     public void run(){
         byte[] buf = new byte[1024];
         System.setProperty("java.net.preferIPv4Stack", "true");
+        String resp_msg;
+        String msg;
         
         try {   
-             DatagramSocket s = new DatagramSocket(c_port);
+
             //s.joinGroup(address);
             while(true) {
                 
-                System.out.println("Escuchando en Unicast en PORT: "+c_port);
+                System.out.println("Escuchando en Unicast en PORT: "+CLIENT_PORT);
                 DatagramPacket packet = new DatagramPacket(buf, buf.length);
-                s.setSoTimeout(10500);
-                s.receive(packet);                    
+                DatagramPacket notice_packet = new DatagramPacket(buf,buf.length);
+                DatagramPacket resp_packet = new DatagramPacket(buf,buf.length);
+                socket_cliente.setSoTimeout(10500);
+                socket_cliente.receive(packet);                    
                 
                 byte[] data = new byte[packet.getLength()];
                 System.arraycopy(packet.getData(), packet.getOffset(), data, 0, packet.getLength());
-                String msg = new String(data);
+                msg = new String(data);
                 // lectura de lo que nos mandan
                 System.out.println(msg);
                 System.out.println(switch_distritos.get(msg));
                 System.out.println(switch_distritos.entrySet());
-                int choice = switch_distritos.get(msg);
-                if(switch_distritos.get(msg) != null){
-                    System.out.println("Se eligio a "+msg);
-                    Boolean auth;
-                    auth = VerifyAuth(packet.getAddress(), msg);
+
+                String sep = "[/]"; //caracter separador
+                String[] comando_cliente = msg.split(sep);// El resultado es: [IP, PORT]
+
+                //Nuevo cliente, hay que enviarle los comandos
+                
+                if(comando_cliente[0].equals("NewClient")){
+                    resp_msg = "Consola\n(1) Listar Distritos\n(2) Conectarse a un Distrito\n(3) Nuevo Titan";
+                    resp_packet = new DatagramPacket(resp_msg.getBytes(), resp_msg.length(), packet.getAddress(), packet.getPort());
+                    socket_cliente.send(resp_packet);
+                
+                }
+                if(comando_cliente[0].equals("1")){//Formato: ComandoCliente
+                    resp_msg = map_distritos.keySet().toString(); //recuperamos todos los distritos que tengamos guardados
+                    resp_packet = new DatagramPacket(resp_msg.getBytes(),resp_msg.length(),packet.getAddress(),packet.getPort());
+                    socket_cliente.send(resp_packet);
+                }
+                if(comando_cliente[0].equals("2")){//formato: ComandoCliente/NombreDistrito
+                    if(map_distritos.get(comando_cliente[1]) != null){
+                    System.out.println("Se eligio a "+comando_cliente[1]);
+                    Boolean auth = VerifyAuth(packet.getAddress(), comando_cliente[1]);
+                    
                     // Si se da autorizacion
                     if(auth){
-
-                        String resp = InfoDistrito(packet, msg);
+                        String resp = InfoDistrito(packet, comando_cliente[1]);
                         System.out.println(resp);
                         DatagramPacket respPacket = new DatagramPacket(resp.getBytes(),
-                        resp.getBytes().length, packet.getAddress(), packet.getPort());
-                        s.send(respPacket);
+                            resp.length(), packet.getAddress(), packet.getPort());
+                        socket_cliente.send(respPacket);
                         
-                    }
-                    else{
-                        System.out.println("Permiso de conexion a" +map_distritos.get(choice)+" denegado");
+                    } else{
+                        System.out.println("Permiso de conexion a" +comando_cliente[1]+" denegado");
                     }    
+                    }
                 }
+                if(comando_cliente[0].equals("3")){//formato: Comando/Nombre;Tipo;Distrito
+                    String new_sep = "[;]";
+                    String[] info_titan = comando_cliente[1].split(sep);
+                    String nombre_titan = info_titan[0];
+                    String tipo_titan = info_titan[1];
+                    String distrito_titan = info_titan[2];
+                    Titan nuevo_titan = new Titan(nombre_titan,tipo_titan,distrito_titan);
+                    lista_titanes.add(nuevo_titan);
+                    
+                    //Avisamos a los distritos la creacion del titan para que el distrito correspondiente lo agregue a su lista
+                    resp_msg = "NewTitan/"+nuevo_titan.GetId()+";"+nuevo_titan.GetNombre()+";"+nuevo_titan.GetTipo()+";"+nuevo_titan.GetDistrito();
+                    notice_packet = new DatagramPacket(resp_msg.getBytes(),resp_msg.length(),InetAddress.getByName(MULTICAST_ADDR),MULTICAST_PORT);
+                    socket_distritos.send(notice_packet);
+                    System.out.println("NUEVO TITAN: \n**********\nNombre: "+nombre_titan+"\nTipo: "+tipo_titan+"\nEn el distrito: "+distrito_titan+"\n**********");
+
+
+                }
+
+
+
+
+
+
+
+
+                //int choice = switch_distritos.get(msg);
+                
                 
                 
                 System.out.println("Socket Unicast recieved: "+ msg);

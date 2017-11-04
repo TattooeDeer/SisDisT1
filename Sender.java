@@ -19,9 +19,10 @@ public class Sender {
 
 
         ///////////////////// MULTICAST //////////////////////
-        InetAddress addr2 = InetAddress.getByName(M_ADDR);
+
+        //InetAddress addr2 = InetAddress.getByName(M_ADDR);
         // Open a new DatagramSocket, which will be used to send the data.
-        try (DatagramSocket serverSocket = new DatagramSocket()) {
+        /*try (DatagramSocket serverSocket = new DatagramSocket()) {
             
                 String msg = "NewDistrito/Shingeki/123;8888;1234;8887";
 
@@ -35,7 +36,7 @@ public class Sender {
             
         } catch (IOException ex) {
             ex.printStackTrace();
-        }
+        }*/
 
         /////////////// UDP /////////////////////////////
         // Get the address that we are going to connect to.
@@ -56,7 +57,7 @@ public class Sender {
                 System.out.println("Server sent packet with msg (Unicast 8887): " + msg);
                 
             }**/
-            String msg = "Shingeki";
+            String msg = "1";
 
                 // Create a packet that will contain the data
                 // (in the form of bytes) and send it.

@@ -176,7 +176,32 @@ class SocketDistritos extends MainServer implements Runnable{
                     System.out.println("NUEVO TITAN: \n**********\nNombre: "+lista_titanes.get(0).GetNombre()+"\nTipo: "+lista_titanes.get(0).GetTipo()+"\nEn el distrito: "+lista_titanes.get(0).GetDistrito()+"\n**********");}
 
                 //////// DEMAS FUNCIONES DE SERVIDOR A PEDIDO DE DISTRITOS
-                
+                    //CaputarTitan/id_titan
+                else if (sockets_distritos[0].equals("CaputarTitan")){
+                    for (int i =0 ; i<lista_titanes.size(); i++){
+                        Titan titan = lista_titanes.get(i);
+                        if (titan.GetId().equals(sockets_distritos[1])){
+                            if (titan.GetEstado().equals("vivo")){
+                                titan.SetEstado = "capturado";
+                                //dar aviso en multicast a los clientes 
+                            }
+                        }
+                    }
+                    System.out.println("Titan no existe");
+                }
+
+                else if (sockets_distritos[0].equals("AsesinarTitan")){
+                    for (int i =0 ; i<lista_titanes.size(); i++){
+                        Titan titan = lista_titanes.get(i);
+                        if (titan.GetId().equals(sockets_distritos[1])){
+                            if (titan.GetEstado().equals("vivo")){
+                                titan.SetEstado = "asesinado";
+                                //dar aviso en multicast a los clientes
+                            }
+                        }
+                    }
+                    System.out.println("Titan no existe");
+                }
                 
 
                 
